@@ -46,342 +46,351 @@ return `${formattedDay}-${formattedMonth}-${year}`;
 
 }
 
-const generateInform = async ({certificado,calculos,element,dataService,num_informe,ano,nombre_pdf,conteosFrotis}) => {
+const generateInform = async ({certificado,calculos,element,dataService,num_informe,ano,nombre_pdf,conteosFrotis,isMultiChanel,promedios}) => {
 
-    console.log('CERTIFICADO:',certificado)
-    console.log('CALCULOS:',calculos)
-    console.log('ELEMNTO:',element)
-    console.log('service:',dataService)
- 
-    try{ // Cargar el machote PDF desde una URL
-     const pdfBytes = await fetch(pdfTemplate).then(res => res.arrayBuffer());
-     
-     // Cargar el PDF en pdf-lib
-     const pdfDoc = await PDFDocument.load(pdfBytes);
-     
-     // Obtener la primera página del PDF
-     const pages = pdfDoc.getPages();
-     const firstPage = pages[0];''
- 
+           console.log('CERTIFICADO:',certificado)
+           console.log('CALCULOS:',calculos)
+           console.log('ELEMNTO:',element)
+           console.log('service:',dataService)
+        
+            // Cargar el machote PDF desde una URL
+            const pdfBytes = await fetch(pdfTemplate).then(res => res.arrayBuffer());
+            
+            // Cargar el PDF en pdf-lib
+            const pdfDoc = await PDFDocument.load(pdfBytes);
+            
+            // Obtener la primera página del PDF
+            const pages = pdfDoc.getPages();
+            const firstPage = pages[0];''
+        
 
-     // Añadir texto a la primera página
-     const {  height } = firstPage.getSize();
-     
-     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-     const sizeStandar = 8
-     let sizeData = 7
-     
-     const printLine =(text,x,y,font,fontmini)=>{
-         let textW =0
-         let sizeFont = sizeData
-         textW = font.widthOfTextAtSize(text, sizeData);
-         if(textW > 300){
-             sizeFont = sizeData - 1 - 1
-         }else if(textW > 187  ){
-             sizeFont = sizeData--
-         }else if(fontmini){
+            // Añadir texto a la primera página
+            const { width, height } = firstPage.getSize();
+            
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+            const sizeStandar = 8
+            let sizeData = 7
+            
+            const printLine =(text,x,y,font,fontmini)=>{
+                let textW =0
+                let sizeFont = sizeData
+                textW = font.widthOfTextAtSize(text, sizeData);
+                if(textW > 300){
+                    sizeFont = sizeData - 1 - 1
+                }else if(textW > 187  ){
+                    sizeFont = sizeData--
+                }else if(fontmini){
 
-             if(textW > 80 ){
-                 sizeFont = sizeData - 3
-             }else if(textW > 142 ){
-                 sizeFont = sizeData - 4
-             }
-             else{
-                 sizeFont = sizeData--
-             }
-             
-         }
-         firstPage.drawText(text, {
-         x,
-         y: height - y,
-         size: sizeFont,
-         font: font,
-         color: rgb(0, 0, 0),
-         });
+                    if(textW > 80 ){
+                        sizeFont = sizeData - 3
+                    }else if(textW > 142 ){
+                        sizeFont = sizeData - 4
+                    }
+                    else{
+                        sizeFont = sizeData--
+                    }
+                    
+                }
+                firstPage.drawText(text, {
+                x,
+                y: height - y,
+                size: sizeFont,
+                font: font,
+                color: rgb(0, 0, 0),
+                });
 
-     }
-     const parseDate=(fechaStr)=> {
-         const [year, month, day] = fechaStr.split('-').map(Number);
-         // El mes en el constructor Date es 0-indexed (enero es 0, diciembre es 11)
-         return new Date(year, month - 1, day);
-        }
+            }
+            const parseDate=(fechaStr)=> {
+                const [year, month, day] = fechaStr.split('-').map(Number);
+                // El mes en el constructor Date es 0-indexed (enero es 0, diciembre es 11)
+                return new Date(year, month - 1, day);
+              }
+            
+            
+            
+            firstPage.drawText(`SIR${ano}-PF-${num_informe}`, {
+            x: 350,
+            y: height - 118,
+            size: sizeStandar,
+            font: fontBold,
+            color: rgb(0, 0, 0),
+            });                     
+            firstPage.drawText(`${formatFecha(calculos.currentDate)}`, {
+            x: 465,
+            y: height - 118,
+            size: sizeStandar,
+            font: font,
+            color: rgb(0, 0, 0),
+            });
+            firstPage.drawText(`${dataService.razon_social}`, {
+            x: 100,
+            y: height - 146,
+            size: sizeData,
+            font: fontBold,
+            color: rgb(0, 0, 0),
+            });
+            let saltosLinea = 9
+            //DATOS DEL PERMISIONARIO
+            printLine(`${dataService.calle.toUpperCase()}`,100,154,font,false)
+            printLine(`${dataService.colonia.toUpperCase()}`,100,154 + saltosLinea,font,false)
+            printLine(`${dataService.ciudad.toUpperCase()}`,100,154 + saltosLinea *2,font,false)
+            printLine(`${dataService.telefono.toUpperCase()}`,100,154 + saltosLinea *3,font,false)
 
-     firstPage.drawText(`SIR${ano}-PF-${num_informe}`, {
-     x: 350,
-     y: height - 118,
-     size: sizeStandar,
-     font: fontBold,
-     color: rgb(0, 0, 0),
-     });                     
-     firstPage.drawText(`${formatFecha(calculos.currentDate)}`, {
-     x: 465,
-     y: height - 118,
-     size: sizeStandar,
-     font: font,
-     color: rgb(0, 0, 0),
-     });
-     firstPage.drawText(`${dataService.razon_social}`, {
-     x: 100,
-     y: height - 146,
-     size: sizeData,
-     font: fontBold,
-     color: rgb(0, 0, 0),
-     });
-     let saltosLinea = 9
-     //DATOS DEL PERMISIONARIO
-     printLine(`${dataService.calle.toUpperCase()}`,100,154,font,false)
-     printLine(`${dataService.colonia.toUpperCase()}`,100,154 + saltosLinea,font,false)
-     printLine(`${dataService.ciudad.toUpperCase()}`,100,154 + saltosLinea *2,font,false)
-     printLine(`${dataService.telefono.toUpperCase()}`,100,154 + saltosLinea *3,font,false)
+            printLine(`${dataService.cp.toUpperCase()}`,306,154 + saltosLinea,font,false)
+            printLine(`${dataService.estado.toUpperCase()}`,306,154 + saltosLinea *2,font,false)
+            printLine(`${dataService.fax.toUpperCase()}`,306,154 + saltosLinea *3,font,false)
+            printLine(`${dataService.licencia.toUpperCase()}`,306,152 + saltosLinea *4,font,false)
 
-     printLine(`${dataService.cp.toUpperCase()}`,306,154 + saltosLinea,font,false)
-     printLine(`${dataService.estado.toUpperCase()}`,306,154 + saltosLinea *2,font,false)
-     printLine(`${dataService.fax.toUpperCase()}`,306,154 + saltosLinea *3,font,false)
-     printLine(`${dataService.licencia.toUpperCase()}`,306,152 + saltosLinea *4,font,false)
+            printLine(`${dataService.correo.toLowerCase()}`,465,152 + saltosLinea * 3,font,true)
+            printLine(`${formatFecha(parseDate(dataService.fecha_vencimiento))}`,465,152 + saltosLinea * 4,font,false)
 
-     printLine(`${dataService.correo.toLowerCase()}`,465,152 + saltosLinea * 3,font,true)
-     printLine(`${formatFecha(parseDate(dataService.fecha_vencimiento))}`,465,152 + saltosLinea * 4,font,false)
+            //DATOS DE LA FUENTE SELLADA
+            saltosLinea=8
+            printLine(`${element.marca.toUpperCase()}`,130,214,font,false)
+            printLine(`${element.isotopo}`,130,214 + saltosLinea,font,false)
+            printLine(`${element.serie}`,130,214 + saltosLinea *2,fontBold,false)
+            printLine(`${element.actividad} ${element.unidades}`,130,214 + saltosLinea *3,font,false)
+            
+            // DATOS DEL TITULAR DE AUTORIZACION
+            let inicio= 265
+            printLine(`${certificado.licencia.razon_social.toUpperCase()}`,100,inicio ,fontBold,false)
+            printLine(`${certificado.licencia.num_lic.toUpperCase()}`,390,inicio + saltosLinea *1,fontBold,false)
+            printLine(`${formatFecha(parseDate(certificado.licencia.fecha_vencimiento.toUpperCase()))}`,470,inicio + saltosLinea *2,fontBold,false)
 
-     //DATOS DE LA FUENTE SELLADA
-     saltosLinea=8
-     printLine(`${element.marca.toUpperCase()}`,130,214,font,false)
-     printLine(`${element.isotopo}`,130,214 + saltosLinea,font,false)
-     printLine(`${element.serie}`,130,214 + saltosLinea *2,fontBold,false)
-     printLine(`${element.actividad} ${element.unidades}`,130,214 + saltosLinea *3,font,false)
-     
-     // DATOS DEL TITULAR DE AUTORIZACION
-     let inicio= 265
-     printLine(`${certificado.licencia.razon_social.toUpperCase()}`,100,inicio ,fontBold,false)
-     printLine(`${certificado.licencia.num_lic.toUpperCase()}`,390,inicio + saltosLinea *1,fontBold,false)
-     printLine(`${formatFecha(parseDate(certificado.licencia.fecha_vencimiento.toUpperCase()))}`,470,inicio + saltosLinea *2,fontBold,false)
+            inicio=282
+            
+            printLine(`${certificado.licencia.calle.toUpperCase()}`,100,inicio,font,false)
+            printLine(`${certificado.licencia.colonia.toUpperCase()}`,100,inicio + saltosLinea,font,false)
+            printLine(`${certificado.licencia.ciudad.toUpperCase()}`,100,inicio + saltosLinea *2,font,false)
+            printLine(`${certificado.licencia.telefono.toUpperCase()}`,100,inicio + saltosLinea *3,font,false)
 
-     inicio=282
-     
-     printLine(`${certificado.licencia.calle.toUpperCase()}`,100,inicio,font,false)
-     printLine(`${certificado.licencia.colonia.toUpperCase()}`,100,inicio + saltosLinea,font,false)
-     printLine(`${certificado.licencia.ciudad.toUpperCase()}`,100,inicio + saltosLinea *2,font,false)
-     printLine(`${certificado.licencia.telefono.toUpperCase()}`,100,inicio + saltosLinea *3,font,false)
+            printLine(`${certificado.licencia.cp.toUpperCase()}`,306,inicio + saltosLinea,font,false)
+            printLine(`${certificado.licencia.estado.toUpperCase()}`,306,inicio + saltosLinea *2,font,false)
+            printLine(`${certificado.licencia.fax.toUpperCase()}`,306,inicio + saltosLinea *3,font,false)
 
-     printLine(`${certificado.licencia.cp.toUpperCase()}`,306,inicio + saltosLinea,font,false)
-     printLine(`${certificado.licencia.estado.toUpperCase()}`,306,inicio + saltosLinea *2,font,false)
-     printLine(`${certificado.licencia.fax.toUpperCase()}`,306,inicio + saltosLinea *3,font,false)
+            printLine(`${certificado.licencia.correo.toLowerCase()}`,465,inicio + saltosLinea * 3,font,true)
 
-     printLine(`${certificado.licencia.correo.toLowerCase()}`,465,inicio + saltosLinea * 3,font,true)
-
-     //DATOS DEL SISTEMA DE MEDICION 
-     saltosLinea=8.5
-     inicio = 332
-     printLine(`${certificado.equipo.tipo.toUpperCase()} / ${certificado.detector.tipo.toUpperCase()}`,200,inicio ,font,false)
-     printLine(`${certificado.equipo.marca.toUpperCase()} / ${certificado.detector.marca.toUpperCase()}`,200,inicio  + saltosLinea ,font,false)
-     printLine(`${certificado.equipo.modelo.toUpperCase()},${certificado.equipo.serie} / ${certificado.detector.modelo.toUpperCase()},${certificado.equipo.serie}`,200,inicio + saltosLinea * 2,font,false)
-     printLine(`0 - 2.0 KV (4096 canales)`,200,inicio + saltosLinea * 3,font,false)
-     printLine(`${certificado.equipo.resolucion.toUpperCase()}`,200,inicio + saltosLinea * 4,font,false)
-     printLine(`${calculos.efficencyDetection} %`,200,inicio + saltosLinea * 5,font,false)
-     printLine(`${formatFecha(calculos.currentDate)}`,200,inicio + saltosLinea * 6,font,false)
-     printLine(`FUENTE PUNTUAL`,200,inicio + saltosLinea * 7,font,false)
-     printLine(`${certificado.fuente.marca}`,200,inicio + saltosLinea * 8,font,false)
-     printLine(`${certificado.fuente.isotopo}`,200,inicio + saltosLinea * 9,font,false)
-     printLine(`${certificado.fuente.serie}`,200,inicio + saltosLinea * 10,font,false)
-     printLine(`${certificado.fuente.actividad_original} ${certificado.fuente.unidades}`,200,inicio + saltosLinea * 11,font,false)
-     printLine(`${formatFecha(certificado.fuente.fecha_cal)}`,200,inicio + saltosLinea * 12,font,false)
-     //DATOS DE LA PRUEBA DE FUGA
-     saltosLinea=8.5
-     inicio = 458
-     let margen=225
-    
-    
-     printLine(`${formatFecha(parseDate(element.fecha_frotis))}`,margen,inicio ,font,false)
-     printLine(`Tlalnepanla, Estado de México a ${formatFecha(calculos.currentDate)}`,margen,inicio + saltosLinea,font,false)
-     printLine(` ${element.metodo}`,margen,inicio + saltosLinea * 2,font,false)
-     printLine(` ${certificado.tiempoConteo} min.`,margen + 100,inicio + saltosLinea  * 3,font,false)
-     printLine(` ${certificado.conteosFondo} CPM`,margen,inicio + saltosLinea * 4,font,false)
-     printLine(` ${certificado.tiempoConteo} min.`,margen + 100,inicio + saltosLinea  * 5,font,false)
-     printLine(` ${certificado.tiempoConteo} min.`,margen + 100,inicio + saltosLinea  * 6,font,false)
-     printLine(` ${calculos.lld} Bq`,margen + 100,inicio + saltosLinea  * 7,font,false)
-     printLine(` ${calculos.lld} Bq`,margen + 100,inicio + saltosLinea  * 8,font,false)
-     //RESULTADOS DE LA PRUEBA DE FUGA
-     inicio = 567
-     
-     const centerText= (inicio,minWidth,maxWidth,textToCenter,fontBold)=>{
-         const textWidth = fontBold.widthOfTextAtSize(textToCenter, 7);
-         const availableWidth = maxWidth -minWidth
-         const x = (availableWidth - textWidth) / 2; 
-         
-         
-         firstPage.drawText(textToCenter, {
-             x: minWidth + x,
-             y:height - inicio,
-             size: 7,
-             font: fontBold,
-         });
-     }
-
-     centerText(inicio,120,200,`${element.isotopo}`,fontBold)
-     centerText(inicio,275,410,`${element.serie}`,fontBold)
-     centerText(inicio,430,500,`SI`,fontBold)
-
-     inicio=655
-     centerText(inicio,120,275,`${certificado.personalRealiza.nivel} ${certificado.personalRealiza.nombre}`,fontBold)
-     centerText(inicio,390,500,`${certificado.personalAutoriza.nivel} ${certificado.personalAutoriza.nombre}`,fontBold)
-     inicio=inicio + 8
-     centerText(inicio,120,275,`${certificado.personalRealiza.cargo} `,fontBold)
-     centerText(inicio,390,500,`${certificado.personalAutoriza.cargo} `,fontBold)
-
-     
+            //DATOS DEL SISTEMA DE MEDICION 
+            saltosLinea=8.5
+            inicio = 332
+            printLine(`${certificado.equipo.tipo.toUpperCase()} / ${certificado.detector.tipo.toUpperCase()}`,200,inicio ,font,false)
+            printLine(`${certificado.equipo.marca.toUpperCase()} / ${certificado.detector.marca.toUpperCase()}`,200,inicio  + saltosLinea ,font,false)
+            printLine(`${certificado.equipo.modelo.toUpperCase()},${certificado.equipo.serie} / ${certificado.detector.modelo.toUpperCase()},${certificado.detector.serie}`,200,inicio + saltosLinea * 2,font,false)
+            isMultiChanel ? printLine(`0 - 2.0 KV (4096 canales)`,200,inicio + saltosLinea * 3,font,false) : printLine(`0 - 2.0 KV`,200,inicio + saltosLinea * 3,font,false)
+            printLine(`${certificado.equipo.resolucion.toUpperCase()}`,200,inicio + saltosLinea * 4,font,false)
+            printLine(`${calculos.efficencyDetection} %`,200,inicio + saltosLinea * 5,font,false)
+            printLine(`${formatFecha(calculos.currentDate)}`,200,inicio + saltosLinea * 6,font,false)
+            printLine(`FUENTE PUNTUAL`,200,inicio + saltosLinea * 7,font,false)
+            printLine(`${certificado.fuente.marca}`,200,inicio + saltosLinea * 8,font,false)
+            printLine(`${certificado.fuente.isotopo}`,200,inicio + saltosLinea * 9,font,false)
+            printLine(`${certificado.fuente.serie}`,200,inicio + saltosLinea * 10,font,false)
+            printLine(`${certificado.fuente.actividad_original} ${certificado.fuente.unidades}`,200,inicio + saltosLinea * 11,font,false)
+            printLine(`${formatFecha(certificado.fuente.fecha_cal)}`,200,inicio + saltosLinea * 12,font,false)
+            //DATOS DE LA PRUEBA DE FUGA
+            saltosLinea=8.5
+            inicio = 458
+            let margen=225
+           
+           
+            printLine(`${formatFecha(parseDate(element.fecha_frotis))}`,margen,inicio ,font,false)
+            printLine(`Tlalnepanla, Estado de México a ${formatFecha(calculos.currentDate)}`,margen,inicio + saltosLinea,font,false)
+            printLine(` ${element.metodo}`,margen,inicio + saltosLinea * 2,font,false)
+            printLine(` ${certificado.tiempoConteo} min.`,margen + 100,inicio + saltosLinea  * 3,font,false)
+            printLine(` ${calculos.conteosFondo} CPM`,margen,inicio + saltosLinea * 4,font,false)
+            printLine(` ${certificado.tiempoConteo} min.`,margen + 100,inicio + saltosLinea  * 5,font,false)
+            printLine(` ${certificado.tiempoConteo} min.`,margen + 100,inicio + saltosLinea  * 6,font,false)
+            printLine(` ${calculos.lld} Bq`,margen + 100,inicio + saltosLinea  * 7,font,false)
+            printLine(` ${calculos.lld} Bq`,margen + 100,inicio + saltosLinea  * 8,font,false)
+            //RESULTADOS DE LA PRUEBA DE FUGA
+            inicio = 567
+            
+            const centerText= (inicio,minWidth,maxWidth,textToCenter,fontBold)=>{
+                const textWidth = fontBold.widthOfTextAtSize(textToCenter, 7);
+                const availableWidth = maxWidth -minWidth
+                const x = (availableWidth - textWidth) / 2; 
                 
-     // Serializar el PDF a bytes
-     const pdfBytesEdited = await pdfDoc.save();
-     
-     // Descargar el PDF editado
-     const blob = new Blob([pdfBytesEdited], { type: 'application/pdf' });
-     saveAs(blob,`${nombre_pdf}`);
+                
+                firstPage.drawText(textToCenter, {
+                    x: minWidth + x,
+                    y:height - inicio,
+                    size: 7,
+                    font: fontBold,
+                });
+            }
 
-     // CREACION DE LA HOJA DE DATOS 
-     // Cargamos el machote PDF 
+            centerText(inicio,120,200,`${element.isotopo}`,fontBold)
+            centerText(inicio,275,410,`${element.serie}`,fontBold)
+            centerText(inicio,430,500,`SI`,fontBold)
 
-     const pdfBytesHoja = await fetch(pdfTemplateData).then(res => res.arrayBuffer());
-     //cargamos el PDF en pdf-lib
-     const pdfDocHoja = await PDFDocument.load(pdfBytesHoja)
-     // obtenemos la primer hoja 
-     const pagesHoja = pdfDocHoja.getPages()
-     const hoja = pagesHoja[0]
+            inicio=672
+            centerText(inicio,105,275,`${certificado.personalRealiza.nivel} ${certificado.personalRealiza.nombre}`,fontBold)
+            centerText(inicio,375,500,`${certificado.personalAutoriza.nivel} ${certificado.personalAutoriza.nombre}`,fontBold)
+            inicio=inicio + 8
+            centerText(inicio,105,275,`${certificado.personalRealiza.cargo} `,fontBold)
+            centerText(inicio,375,500,`${certificado.personalAutoriza.cargo} `,fontBold)
 
-     sizeData = 8
-     const printLineH =(text,x,y,font,fontmini)=>{
-         let textW =0
-         let sizeFont = sizeData
-         textW = font.widthOfTextAtSize(text, sizeData);
-         if(textW > 300){
-             sizeFont = sizeData - 1 - 1
-         }else if(textW > 187  ){
-             sizeFont = sizeData--
-         }else if(fontmini){
+            
+                       
+            // Serializar el PDF a bytes
+            const pdfBytesEdited = await pdfDoc.save();
+            
+            // Descargar el PDF editado
+            const blob = new Blob([pdfBytesEdited], { type: 'application/pdf' });
+            saveAs(blob,`${nombre_pdf}`);
 
-             if(textW > 80 ){
-                 sizeFont = sizeData - 3
-             }else if(textW > 142 ){
-                 sizeFont = sizeData - 4
-             }
-             else{
-                 sizeFont = sizeData--
-             }
-             
-         }
-         hoja.drawText(text, {
-         x,
-         y: height - y,
-         size: sizeFont,
-         font: font,
-         color: rgb(0, 0, 0),
-         });
+            // CREACION DE LA HOJA DE DATOS 
+            // Cargamos el machote PDF 
+            const pdfBytesHoja = await fetch(pdfTemplateData).then(res => res.arrayBuffer());
+            //cargamos el PDF en pdf-lib
+            const pdfDocHoja = await PDFDocument.load(pdfBytesHoja)
+            // obtenemos la primer hoja 
+            const pagesHoja = pdfDocHoja.getPages()
+            const hoja = pagesHoja[0]
 
-     }
-     //Tabla de fuente calibración
-     inicio = 350
-     margen= 192
-     saltosLinea =11
-     printLineH(` ${certificado.fuente.isotopo}`,margen ,inicio ,font,false)
-     printLineH(` ${originalActivityBq(certificado.fuente.actividad_original,certificado.fuente.unidades)} `,margen ,inicio + saltosLinea  * 1,font,false)
-     printLineH(` ${dateFormatShort(certificado.fuente.fecha_cal)} `,margen ,inicio + saltosLinea  * 2,font,false)
-     printLineH(` ${dateFormatShort(calculos.currentDate)} `,margen ,inicio + saltosLinea  * 3,font,false)
-     printLineH(` ${parseFloat(calculos.timeElapsed) * parseFloat(365.5)} `,margen ,inicio + saltosLinea  * 4,font,false)
-     printLineH(` ${parseFloat(calculos.timeElapsed)} `,margen ,inicio + saltosLinea  * 5,font,false)
-     printLineH(` ${calculos.halfLife} `,margen ,inicio + saltosLinea  * 6,font,false)
-     printLineH(` ${certificado.fuente.rendimiento} `,margen ,inicio + saltosLinea  * 7,font,false)
-     printLineH(` ${parseFloat(calculos.decayConstant).toFixed(2)} `,margen ,inicio + 2 + saltosLinea  * 8,font,false)
-     printLineH(` ${calculos.currentActivity} `,margen ,inicio + 2 + saltosLinea  * 9,font,false)
-     //Tabla de fuente calibración
-     margen=390
-     sizeData = 4
-     printLineH(` ${dataService.razon_social} `,margen ,inicio + saltosLinea  * 2,font,false)
-     sizeData=7
-     printLineH(` ${element.isotopo} `,margen ,inicio + saltosLinea  * 3,font,false)
-     printLineH(` ${dateFormatShort(element.fecha_frotis)} `,margen ,inicio + saltosLinea  * 4,font,false)
-     printLineH(` ${dateFormatShort(calculos.currentDate)} `,margen ,inicio + saltosLinea  * 5,font,false)
-     printLineH(` SIR${ano}-PF-${num_informe}`,margen ,inicio + saltosLinea  * 6,font,false)
-     //Datos del equipo
-     margen=675
-     inicio = 350
-     printLineH(` ${certificado.equipo.marca} `,margen ,inicio ,font,false)
-     printLineH(` ${certificado.equipo.modelo} `,margen ,inicio + saltosLinea  ,font,false)
-     printLineH(` ${certificado.equipo.serie} `,margen ,inicio + saltosLinea  * 2,font,false)
-     printLineH(` ${certificado.th} mV`,margen ,inicio + saltosLinea  * 3,font,false)
-     printLineH(`${certificado.ganancia}`,margen ,inicio + saltosLinea  * 4,font,false)
-     printLineH(` ${certificado.hv} V `,margen ,inicio + saltosLinea  * 5,font,false)
-     printLineH(` ${certificado.tiempoConteo} min.`,margen ,inicio + saltosLinea  * 6,font,false)
-     printLineH(` ${certificado.detector.modelo} `,margen ,inicio + saltosLinea  * 7,font,false)
-     printLineH(` ${certificado.detector.serie} `,margen ,inicio + saltosLinea  * 8,font,false)
-     //Datos de la muestra
-     margen=185
-     inicio=510
-     printLineH(` ${certificado.conteosFondo} `,margen ,inicio ,font,false)
-     printLineH(` ${certificado.conteosFuente} `,margen ,inicio + saltosLinea  ,font,false)
-     printLineH(` ${conteosFrotis} `,margen ,inicio + saltosLinea  * 2,font,false)
-     printLineH(` ${element.serie} `,margen - 145,inicio + saltosLinea  * 2,font,false)
+            sizeData = 8
+            const printLineH =(text,x,y,font,fontmini)=>{
+                let textW =0
+                let sizeFont = sizeData
+                textW = font.widthOfTextAtSize(text, sizeData);
+                if(textW > 300){
+                    sizeFont = sizeData - 1 - 1
+                }else if(textW > 187  ){
+                    sizeFont = sizeData--
+                }else if(fontmini){
 
-     //xm
-     margen=460
-     printLineH(` ${certificado.conteosFondo} `,margen ,inicio ,font,false)
-     printLineH(` ${certificado.conteosFuente} `,margen ,inicio + saltosLinea  ,font,false)
-     printLineH(` ${conteosFrotis} `,margen ,inicio + saltosLinea  * 2,font,false)
-     //S
-     margen=520
-     printLineH(` ${Math.sqrt(parseFloat(certificado.conteosFondo)).toFixed(0)} `,margen ,inicio ,font,false)
-     printLineH(` ${Math.sqrt(parseFloat(certificado.conteosFuente)).toFixed(0)} `,margen ,inicio + saltosLinea  ,font,false)
-     printLineH(` ${Math.sqrt(parseFloat(conteosFrotis)).toFixed(0)} `,margen ,inicio + saltosLinea  * 2,font,false)
-     //Xm-Xf
-     margen=580
-     let resultFondo=parseFloat(certificado.conteosFondo).toFixed(0) - parseFloat(certificado.conteosFondo).toFixed(0)
-     printLineH(` ${resultFondo < 0 ? 0 : resultFondo} `,margen ,inicio ,font,false)
-     let resultFuente=parseFloat(certificado.conteosFuente).toFixed(0) - parseFloat(certificado.conteosFondo).toFixed(0)
-     printLineH(` ${resultFuente < 0 ? 0 : resultFuente}  `,margen ,inicio + saltosLinea  ,font,false)
-     let resultFrotis=parseFloat(conteosFrotis).toFixed(0) - parseFloat(certificado.conteosFondo).toFixed(0)
-     printLineH(` ${resultFrotis < 0 ? 0 : resultFrotis} `,margen ,inicio + saltosLinea  * 2,font,false)
+                    if(textW > 80 ){
+                        sizeFont = sizeData - 3
+                    }else if(textW > 142 ){
+                        sizeFont = sizeData - 4
+                    }
+                    else{
+                        sizeFont = sizeData--
+                    }
+                    
+                }
+                hoja.drawText(text, {
+                x,
+                y: height - y,
+                size: sizeFont,
+                font: font,
+                color: rgb(0, 0, 0),
+                });
 
-     //Actividad en Bq
-     margen=640
-     resultFondo=resultFondo * (parseFloat(calculos.currentActivity)/parseFloat(certificado.conteosFuente))
-     printLineH(` ${resultFondo < 0 ? 0 : resultFondo.toFixed(0)} `,margen ,inicio ,font,false)
-     resultFuente=resultFuente * (parseFloat(calculos.currentActivity)/parseFloat(certificado.conteosFuente))
-     printLineH(` ${resultFuente < 0 ? 0 : resultFuente.toFixed(0)}  `,margen ,inicio + saltosLinea  ,font,false)
-     resultFrotis=resultFrotis * (parseFloat(calculos.currentActivity)/parseFloat(certificado.conteosFuente))
-     printLineH(` ${resultFrotis < 0 ? 0 : resultFrotis.toFixed(0)} `,margen ,inicio + saltosLinea  * 2,font,false)
-     //Coef de variacion
-     margen=700
-     printLineH(` ${((Math.sqrt(parseFloat(certificado.conteosFondo)).toFixed(0) / parseFloat(certificado.conteosFondo)) * 200).toFixed(2)} `,margen ,inicio ,font,false)
-     printLineH(` ${((Math.sqrt(parseFloat(certificado.conteosFuente)).toFixed(0) / parseFloat(certificado.conteosFuente)) * 200).toFixed(2)} `,margen ,inicio + saltosLinea  ,font,false)
-     printLineH(` ${((Math.sqrt(parseFloat(conteosFrotis)).toFixed(0) / parseFloat(conteosFrotis)) * 200).toFixed(2)} `,margen ,inicio + saltosLinea  * 2,font,false)
+            }
+            //Tabla de fuente calibración
+            inicio = 350
+            margen= 192
+            saltosLinea =11
+            printLineH(` ${certificado.fuente.isotopo}`,margen ,inicio ,font,false)
+            printLineH(` ${originalActivityBq(certificado.fuente.actividad_original,certificado.fuente.unidades)} `,margen ,inicio + saltosLinea  * 1,font,false)
+            printLineH(` ${dateFormatShort(certificado.fuente.fecha_cal)} `,margen ,inicio + saltosLinea  * 2,font,false)
+            printLineH(` ${dateFormatShort(calculos.currentDate)} `,margen ,inicio + saltosLinea  * 3,font,false)
+            printLineH(` ${parseFloat(calculos.timeElapsed) * parseFloat(365.5)} `,margen ,inicio + saltosLinea  * 4,font,false)
+            printLineH(` ${parseFloat(calculos.timeElapsed)} `,margen ,inicio + saltosLinea  * 5,font,false)
+            printLineH(` ${calculos.halfLife} `,margen ,inicio + saltosLinea  * 6,font,false)
+            printLineH(` ${certificado.fuente.rendimiento} `,margen ,inicio + saltosLinea  * 7,font,false)
+            printLineH(` ${parseFloat(calculos.decayConstant).toFixed(2)} `,margen ,inicio + 2 + saltosLinea  * 8,font,false)
+            printLineH(` ${calculos.currentActivity} `,margen ,inicio + 2 + saltosLinea  * 9,font,false)
+            //Tabla de fuente calibración
+            margen=390
+            sizeData = 4
+            printLineH(` ${dataService.razon_social} `,margen ,inicio + saltosLinea  * 2,font,false)
+            sizeData=7
+            printLineH(` ${element.isotopo} `,margen ,inicio + saltosLinea  * 3,font,false)
+            printLineH(` ${dateFormatShort(element.fecha_frotis)} `,margen ,inicio + saltosLinea  * 4,font,false)
+            printLineH(` ${dateFormatShort(calculos.currentDate)} `,margen ,inicio + saltosLinea  * 5,font,false)
+            printLineH(` SIR${ano}-PF-${num_informe}`,margen ,inicio + saltosLinea  * 6,font,false)
+            //Datos del equipo
+            margen=675
+            inicio = 350
+            printLineH(` ${certificado.equipo.marca} `,margen ,inicio ,font,false)
+            printLineH(` ${certificado.equipo.modelo} `,margen ,inicio + saltosLinea  ,font,false)
+            printLineH(` ${certificado.equipo.serie} `,margen ,inicio + saltosLinea  * 2,font,false)
+            printLineH(` ${certificado.th} mV`,margen ,inicio + saltosLinea  * 3,font,false)
+            printLineH(`${certificado.ganancia}`,margen ,inicio + saltosLinea  * 4,font,false)
+            isMultiChanel ? printLineH(`GANANCIA`,margen - 70 ,inicio + saltosLinea  * 4,font,false) :
+            printLineH(`WINDOW`,margen - 70 ,inicio + saltosLinea  * 4,font,false)
+            printLineH(` ${certificado.hv} V `,margen ,inicio + saltosLinea  * 5,font,false)
+            printLineH(` ${certificado.tiempoConteo} min.`,margen ,inicio + saltosLinea  * 6,font,false)
+            printLineH(` ${certificado.detector.modelo} `,margen ,inicio + saltosLinea  * 7,font,false)
+            printLineH(` ${certificado.detector.serie} `,margen ,inicio + saltosLinea  * 8,font,false)
+            //Datos de la muestra
+            margen=185
+            inicio=510
+            let saltoMargen = 0
+            if(!isMultiChanel){
+                promedios['fondo'].forEach((item)=>{
+                    printLineH(` ${item} `,margen + saltoMargen ,inicio ,font,false)
+                    saltoMargen = saltoMargen + 60
+                })
+                saltoMargen = 0
+                promedios['fuente'].forEach((item)=>{
+                    printLineH(` ${item} `,margen + saltoMargen ,inicio + saltosLinea ,font,false)
+                    saltoMargen = saltoMargen + 60
+                })
+                saltoMargen = 0
+                promedios[element.serie].forEach((item)=>{
+                    printLineH(` ${item} `,margen + saltoMargen ,inicio + saltosLinea * 2,font,false)
+                    saltoMargen = saltoMargen + 60
+                })
+            }else{
+ 
+                printLineH(` ${calculos.conteosFondo} `,margen ,inicio ,font,false)
+                printLineH(` ${calculos.conteosFuente} `,margen ,inicio + saltosLinea  ,font,false)
+                printLineH(` ${conteosFrotis} `,margen ,inicio + saltosLinea  * 2,font,false)
+                printLineH(` ${element.serie} `,margen - 145,inicio + saltosLinea  * 2,font,false)
+            }
+           
 
-     //Resultados
-     margen=185
-     inicio=663
-     printLineH(` ${calculos.efficencyDetection} `,margen ,inicio ,font,false)
-     printLineH(` ${calculos.countsBq} `,margen ,inicio + saltosLinea  ,font,false)
-     printLineH(` ${calculos.lld} `,margen ,inicio + saltosLinea  * 2,font,false)
+            //xm
+            margen=460
+            printLineH(` ${calculos.conteosFondo} `,margen ,inicio ,font,false)
+            printLineH(` ${calculos.conteosFuente} `,margen ,inicio + saltosLinea  ,font,false)
+            printLineH(` ${conteosFrotis} `,margen ,inicio + saltosLinea  * 2,font,false)
+            //S
+            margen=520
+            printLineH(` ${Math.sqrt(parseFloat(calculos.conteosFondo)).toFixed(0)} `,margen ,inicio ,font,false)
+            printLineH(` ${Math.sqrt(parseFloat(calculos.conteosFuente)).toFixed(0)} `,margen ,inicio + saltosLinea  ,font,false)
+            printLineH(` ${Math.sqrt(parseFloat(conteosFrotis)).toFixed(0)} `,margen ,inicio + saltosLinea  * 2,font,false)
+            //Xm-Xf
+            margen=580
+            let resultFondo=parseFloat(calculos.conteosFondo).toFixed(0) - parseFloat(calculos.conteosFondo).toFixed(0)
+            printLineH(` ${resultFondo < 0 ? 0 : resultFondo} `,margen ,inicio ,font,false)
+            let resultFuente=parseFloat(calculos.conteosFuente).toFixed(0) - parseFloat(calculos.conteosFondo).toFixed(0)
+            printLineH(` ${resultFuente < 0 ? 0 : resultFuente}  `,margen ,inicio + saltosLinea  ,font,false)
+            let resultFrotis=parseFloat(conteosFrotis).toFixed(0) - parseFloat(calculos.conteosFondo).toFixed(0)
+            printLineH(` ${resultFrotis < 0 ? 0 : resultFrotis} `,margen ,inicio + saltosLinea  * 2,font,false)
 
-      // Serializar el PDF a bytes
-      const pdfBytesEditedHoja = await pdfDocHoja.save();
-     
-      // Descargar el PDF editado
-      const blobHoja = new Blob([pdfBytesEditedHoja], { type: 'application/pdf' });
-      saveAs(blobHoja,`${nombre_pdf}_hoja_datos.pdf`);}
-      catch(err){
-        console.log(err)
-        Swal.fire('Algo salio mal',err,'error')
-      }
-     
+            //Actividad en Bq
+            margen=640
+            resultFondo=resultFondo * (parseFloat(calculos.currentActivity)/parseFloat(calculos.conteosFuente))
+            printLineH(` ${resultFondo < 0 ? 0 : resultFondo.toFixed(0)} `,margen ,inicio ,font,false)
+            resultFuente=resultFuente * (parseFloat(calculos.currentActivity)/parseFloat(calculos.conteosFuente))
+            printLineH(` ${resultFuente < 0 ? 0 : resultFuente.toFixed(0)}  `,margen ,inicio + saltosLinea  ,font,false)
+            resultFrotis=resultFrotis * (parseFloat(calculos.currentActivity)/parseFloat(calculos.conteosFuente))
+            printLineH(` ${resultFrotis < 0 ? 0 : resultFrotis.toFixed(0)} `,margen ,inicio + saltosLinea  * 2,font,false)
+            //Coef de variacion
+            margen=700
+            printLineH(` ${((Math.sqrt(parseFloat(calculos.conteosFondo)).toFixed(0) / parseFloat(calculos.conteosFondo)) * 200).toFixed(2)} `,margen ,inicio ,font,false)
+            printLineH(` ${((Math.sqrt(parseFloat(calculos.conteosFuente)).toFixed(0) / parseFloat(calculos.conteosFuente)) * 200).toFixed(2)} `,margen ,inicio + saltosLinea  ,font,false)
+            printLineH(` ${((Math.sqrt(parseFloat(conteosFrotis)).toFixed(0) / parseFloat(conteosFrotis)) * 200).toFixed(2)} `,margen ,inicio + saltosLinea  * 2,font,false)
 
+            //Resultados
+            margen=185
+            inicio=663
+            printLineH(` ${calculos.efficencyDetection} `,margen ,inicio ,font,false)
+            printLineH(` ${calculos.countsBq} `,margen ,inicio + saltosLinea  ,font,false)
+            printLineH(` ${calculos.lld} `,margen ,inicio + saltosLinea  * 2,font,false)
 
-
-
-
-
-
-
-
-
-};
+             // Serializar el PDF a bytes
+             const pdfBytesEditedHoja = await pdfDocHoja.save();
+            
+             // Descargar el PDF editado
+             const blobHoja = new Blob([pdfBytesEditedHoja], { type: 'application/pdf' });
+             saveAs(blobHoja,`${nombre_pdf}_hoja_datos.pdf`);
+            
+    };
 
 export default function FormAnalisis(){
 
@@ -510,7 +519,7 @@ export default function FormAnalisis(){
                     num_informe:actualizacion.num_informe,
                     ano:actualizacion.ano,
                     nombre_pdf:actualizacion.nombre_pdf,
-                    conteosFrotis:actualizacion.calculos.conteosFrotis})
+                    conteosFrotis:actualizacion.calculos.conteosFrotis,isMultiChanel:actualizacion.certificado.isMultiChanel,promedios:actualizacion.calculos.promedios})
 
                     Swal.fire('Actualizado',data.message,'success')
             }

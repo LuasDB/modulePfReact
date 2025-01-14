@@ -42,21 +42,21 @@ export default function AdminLayout() {
 
     return (
         <>
-            <Container className='w-full'>
+            <div className='container-fluid'>
                 <NavBar />
-            </Container>
-            <Container>
+            </div>
+            <div className="container-fluid">
                 <Row>
-                    <Col md={3} >
+                    <Col md={2} >
                         <Sidebar routes={routes} />
                     </Col>
-                    <Col md={9} ref={containerRef} className="">
+                    <Col md={10} ref={containerRef} className="">
                     <Routes>
                     {getRoutes(routes)}
                     </Routes>
                     </Col>
                 </Row>
-            </Container>
+            </div>
         </>
     )
 }

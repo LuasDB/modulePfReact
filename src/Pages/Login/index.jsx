@@ -57,6 +57,8 @@ export default function Login(){
                           />
                   </FormGroup>
                   <Button className="mt-auto self-center">Ingresar</Button>
+                  <a href="/sol-password" className='w-full text-center mb-4 text-sm text-gray-400 pt-6'>Olvide mi contraseña</a>
+
 
 
               </form>

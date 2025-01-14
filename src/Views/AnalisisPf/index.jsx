@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import TablaRecepcion from "../../Components/TablaRecepcion";
+import { useEffect, useState ,useContext} from "react";
 import { Button, Card, CardBody, CardFooter, CardHeader, CardTitle, Label, Table,Form,Row,Col, FormGroup,Input } from "reactstrap";
 import Swal from "sweetalert2";
 import { server } from './../../db/servidor.js'
@@ -9,8 +8,9 @@ import { saveAs } from 'file-saver';
 import pdfTemplate from './../../assets/MachoteInforme.pdf';
 import pdfTemplateData from './../../assets/MachoteHoja.pdf';
 
-import {formatFecha} from './../../functions/formats'
+import {formatFecha,fechaCorta} from './../../functions/formats'
 import { useGetLab } from "../../Hooks";
+import { AuthContext } from "../../context/AuthContext";
 
 const originalActivityBq = (actividad,unidades)=>{
     const unitConversions = {
@@ -45,15 +45,25 @@ return `${formattedDay}-${formattedMonth}-${year}`;
 
 }
 
+const arrayPromedio = (array)=>{
+    return array.reduce((sum,current)=>{
+        return sum + parseFloat(current)
+    },0)/array.length
+}
+
 
 export default function AnalisisPf(){
 
+    const { user } = useContext(AuthContext);
+
     const [frotis,setFrotis] = useState([])
-    const [errorFetch , setErrorFetch] = useState(null)
     const [isFetched, setIsFetched] = useState(false);
     const [isFormActive,setIsFormActive] = useState(false)
     const [elementsToDo,setElementsToDo] = useState({})
-    const [isMultiChanel,setIsMultiChanel] = useState(null)
+    const [isMultiChanel,setIsMultiChanel] = useState(false)
+    const [numFields,setNumFields] = useState(5)
+    const [promedios,setPromedios] = useState({})
+    const [serialFrotis,setSerialFortis] = useState([])
     //Manejo de los inputs creados dinamicamente
     const [inputValues, setInputValues] = useState({});
     // Maneja el cambio de los inputs
@@ -79,11 +89,10 @@ export default function AnalisisPf(){
         fuente:'',
         personalRealiza:'',
         personalAutoriza:'',
-        conteosFondo:'',
-        conteosFuente:'',
         tiempoConteo:'',
         hv:'',
         ganancia:'',th:''
+
     })
     const [formError, setFormError] = useState({})
 
@@ -95,7 +104,7 @@ export default function AnalisisPf(){
         return dataLab[collection].find(item=>item.id === id)
     }
 
-    const calculatePf = ({fuente,formData,conteosFrotis})=>{
+    const calculatePf = ({fuente,formData,conteosFrotis,promedios})=>{
         const unitConversions = {
             Bq: 1,
             KBq: 1000,
@@ -106,7 +115,8 @@ export default function AnalisisPf(){
             μCi: 37000,
             nCi: 37
         };
-        
+        const conteosFuente = arrayPromedio(promedios['fuente'])
+        const conteosFondo = arrayPromedio(promedios['fondo'])
 
 
         const originalActivityBq = parseFloat(fuente.actividad_original) * parseFloat(unitConversions[fuente.unidades])
@@ -117,15 +127,16 @@ export default function AnalisisPf(){
         const currentActivity =( originalActivityBq * Math.exp(-decayConstant * timeElapsed)).toFixed(0);
 
         const flux = 60 * currentActivity * parseFloat(fuente.rendimiento)
-        let efficencyDetection = ((parseInt(formData.conteosFuente) - parseFloat(formData.conteosFondo)) / (parseFloat(formData.tiempoConteo) * flux) * 100).toFixed(2)
+        let efficencyDetection = ((parseInt(conteosFuente) - parseFloat(conteosFondo)) / (parseFloat(formData.tiempoConteo) * flux) * 100).toFixed(2)
         // efficencyDetection=efficencyDetection / flux
 
-        const countsBq = ((parseInt(formData.conteosFuente) - parseInt(formData.conteosFondo) ) / currentActivity).toFixed(0)
+        const countsBq = ((parseInt(conteosFuente) - parseInt(conteosFondo) ) / currentActivity).toFixed(0)
 
-        const lld = ((4.66 * Math.sqrt(formData.conteosFondo) ) / countsBq).toFixed(0)
-        return {
-            conteosFondo:formData.conteosFondo,
-            conteosFuente:formData.conteosFuente,
+        const lld = ((4.66 * Math.sqrt(conteosFondo) ) / countsBq).toFixed(0)
+
+        console.log('RESULTADOS',{
+            conteosFondo:conteosFondo,
+            conteosFuente:conteosFuente,
             conteosFrotis,
             originalActivityBq,
             currentDate,
@@ -137,10 +148,25 @@ export default function AnalisisPf(){
             efficencyDetection,
             countsBq,
             lld
+        })
+        return {
+            conteosFondo:conteosFondo,
+            conteosFuente:conteosFuente,
+            conteosFrotis,
+            originalActivityBq,
+            currentDate,
+            timeElapsed,
+            halfLife,
+            decayConstant,
+            currentActivity,
+            flux,
+            efficencyDetection,
+            countsBq,
+            lld,promedios
         }
     }
     
-    const generateInform = async ({certificado,calculos,element,dataService,num_informe,ano,nombre_pdf,conteosFrotis}) => {
+    const generateInform = async ({certificado,calculos,element,dataService,num_informe,ano,nombre_pdf,conteosFrotis,isMultiChanel,promedios}) => {
 
            console.log('CERTIFICADO:',certificado)
            console.log('CALCULOS:',calculos)
@@ -270,8 +296,8 @@ export default function AnalisisPf(){
             inicio = 332
             printLine(`${certificado.equipo.tipo.toUpperCase()} / ${certificado.detector.tipo.toUpperCase()}`,200,inicio ,font,false)
             printLine(`${certificado.equipo.marca.toUpperCase()} / ${certificado.detector.marca.toUpperCase()}`,200,inicio  + saltosLinea ,font,false)
-            printLine(`${certificado.equipo.modelo.toUpperCase()},${certificado.equipo.serie} / ${certificado.detector.modelo.toUpperCase()},${certificado.equipo.serie}`,200,inicio + saltosLinea * 2,font,false)
-            printLine(`0 - 2.0 KV (4096 canales)`,200,inicio + saltosLinea * 3,font,false)
+            printLine(`${certificado.equipo.modelo.toUpperCase()},${certificado.equipo.serie} / ${certificado.detector.modelo.toUpperCase()},${certificado.detector.serie}`,200,inicio + saltosLinea * 2,font,false)
+            isMultiChanel ? printLine(`0 - 2.0 KV (4096 canales)`,200,inicio + saltosLinea * 3,font,false) : printLine(`0 - 2.0 KV`,200,inicio + saltosLinea * 3,font,false)
             printLine(`${certificado.equipo.resolucion.toUpperCase()}`,200,inicio + saltosLinea * 4,font,false)
             printLine(`${calculos.efficencyDetection} %`,200,inicio + saltosLinea * 5,font,false)
             printLine(`${formatFecha(calculos.currentDate)}`,200,inicio + saltosLinea * 6,font,false)
@@ -291,7 +317,7 @@ export default function AnalisisPf(){
             printLine(`Tlalnepanla, Estado de México a ${formatFecha(calculos.currentDate)}`,margen,inicio + saltosLinea,font,false)
             printLine(` ${element.metodo}`,margen,inicio + saltosLinea * 2,font,false)
             printLine(` ${certificado.tiempoConteo} min.`,margen + 100,inicio + saltosLinea  * 3,font,false)
-            printLine(` ${certificado.conteosFondo} CPM`,margen,inicio + saltosLinea * 4,font,false)
+            printLine(` ${calculos.conteosFondo} CPM`,margen,inicio + saltosLinea * 4,font,false)
             printLine(` ${certificado.tiempoConteo} min.`,margen + 100,inicio + saltosLinea  * 5,font,false)
             printLine(` ${certificado.tiempoConteo} min.`,margen + 100,inicio + saltosLinea  * 6,font,false)
             printLine(` ${calculos.lld} Bq`,margen + 100,inicio + saltosLinea  * 7,font,false)
@@ -317,12 +343,12 @@ export default function AnalisisPf(){
             centerText(inicio,275,410,`${element.serie}`,fontBold)
             centerText(inicio,430,500,`SI`,fontBold)
 
-            inicio=655
-            centerText(inicio,120,275,`${certificado.personalRealiza.nivel} ${certificado.personalRealiza.nombre}`,fontBold)
-            centerText(inicio,390,500,`${certificado.personalAutoriza.nivel} ${certificado.personalAutoriza.nombre}`,fontBold)
+            inicio=672
+            centerText(inicio,105,275,`${certificado.personalRealiza.nivel} ${certificado.personalRealiza.nombre}`,fontBold)
+            centerText(inicio,375,500,`${certificado.personalAutoriza.nivel} ${certificado.personalAutoriza.nombre}`,fontBold)
             inicio=inicio + 8
-            centerText(inicio,120,275,`${certificado.personalRealiza.cargo} `,fontBold)
-            centerText(inicio,390,500,`${certificado.personalAutoriza.cargo} `,fontBold)
+            centerText(inicio,105,275,`${certificado.personalRealiza.cargo} `,fontBold)
+            centerText(inicio,375,500,`${certificado.personalAutoriza.cargo} `,fontBold)
 
             
                        
@@ -335,7 +361,6 @@ export default function AnalisisPf(){
 
             // CREACION DE LA HOJA DE DATOS 
             // Cargamos el machote PDF 
-
             const pdfBytesHoja = await fetch(pdfTemplateData).then(res => res.arrayBuffer());
             //cargamos el PDF en pdf-lib
             const pdfDocHoja = await PDFDocument.load(pdfBytesHoja)
@@ -404,6 +429,8 @@ export default function AnalisisPf(){
             printLineH(` ${certificado.equipo.serie} `,margen ,inicio + saltosLinea  * 2,font,false)
             printLineH(` ${certificado.th} mV`,margen ,inicio + saltosLinea  * 3,font,false)
             printLineH(`${certificado.ganancia}`,margen ,inicio + saltosLinea  * 4,font,false)
+            isMultiChanel ? printLineH(`GANANCIA`,margen - 70 ,inicio + saltosLinea  * 4,font,false) :
+            printLineH(`WINDOW`,margen - 70 ,inicio + saltosLinea  * 4,font,false)
             printLineH(` ${certificado.hv} V `,margen ,inicio + saltosLinea  * 5,font,false)
             printLineH(` ${certificado.tiempoConteo} min.`,margen ,inicio + saltosLinea  * 6,font,false)
             printLineH(` ${certificado.detector.modelo} `,margen ,inicio + saltosLinea  * 7,font,false)
@@ -411,42 +438,62 @@ export default function AnalisisPf(){
             //Datos de la muestra
             margen=185
             inicio=510
-            printLineH(` ${certificado.conteosFondo} `,margen ,inicio ,font,false)
-            printLineH(` ${certificado.conteosFuente} `,margen ,inicio + saltosLinea  ,font,false)
-            printLineH(` ${conteosFrotis} `,margen ,inicio + saltosLinea  * 2,font,false)
-            printLineH(` ${element.serie} `,margen - 145,inicio + saltosLinea  * 2,font,false)
+            let saltoMargen = 0
+            if(!isMultiChanel){
+                promedios['fondo'].forEach((item)=>{
+                    printLineH(` ${item} `,margen + saltoMargen ,inicio ,font,false)
+                    saltoMargen = saltoMargen + 60
+                })
+                saltoMargen = 0
+                promedios['fuente'].forEach((item)=>{
+                    printLineH(` ${item} `,margen + saltoMargen ,inicio + saltosLinea ,font,false)
+                    saltoMargen = saltoMargen + 60
+                })
+                saltoMargen = 0
+                promedios[element.serie].forEach((item)=>{
+                    printLineH(` ${item} `,margen + saltoMargen ,inicio + saltosLinea * 2,font,false)
+                    saltoMargen = saltoMargen + 60
+                })
+            }else{
+ 
+                printLineH(` ${calculos.conteosFondo} `,margen ,inicio ,font,false)
+                printLineH(` ${calculos.conteosFuente} `,margen ,inicio + saltosLinea  ,font,false)
+                printLineH(` ${conteosFrotis} `,margen ,inicio + saltosLinea  * 2,font,false)
+                printLineH(` ${element.serie} `,margen - 145,inicio + saltosLinea  * 2,font,false)
+            }
+           
 
             //xm
             margen=460
-            printLineH(` ${certificado.conteosFondo} `,margen ,inicio ,font,false)
-            printLineH(` ${certificado.conteosFuente} `,margen ,inicio + saltosLinea  ,font,false)
+            printLineH(` ${calculos.conteosFondo} `,margen ,inicio ,font,false)
+            printLineH(` ${calculos.conteosFuente} `,margen ,inicio + saltosLinea  ,font,false)
             printLineH(` ${conteosFrotis} `,margen ,inicio + saltosLinea  * 2,font,false)
             //S
             margen=520
-            printLineH(` ${Math.sqrt(parseFloat(certificado.conteosFondo)).toFixed(0)} `,margen ,inicio ,font,false)
-            printLineH(` ${Math.sqrt(parseFloat(certificado.conteosFuente)).toFixed(0)} `,margen ,inicio + saltosLinea  ,font,false)
+            printLineH(` ${Math.sqrt(parseFloat(calculos.conteosFondo)).toFixed(0)} `,margen ,inicio ,font,false)
+            printLineH(` ${Math.sqrt(parseFloat(calculos.conteosFuente)).toFixed(0)} `,margen ,inicio + saltosLinea  ,font,false)
             printLineH(` ${Math.sqrt(parseFloat(conteosFrotis)).toFixed(0)} `,margen ,inicio + saltosLinea  * 2,font,false)
             //Xm-Xf
             margen=580
-            let resultFondo=parseFloat(certificado.conteosFondo).toFixed(0) - parseFloat(certificado.conteosFondo).toFixed(0)
+            let resultFondo=parseFloat(calculos.conteosFondo).toFixed(0) - parseFloat(calculos.conteosFondo).toFixed(0)
             printLineH(` ${resultFondo < 0 ? 0 : resultFondo} `,margen ,inicio ,font,false)
-            let resultFuente=parseFloat(certificado.conteosFuente).toFixed(0) - parseFloat(certificado.conteosFondo).toFixed(0)
+            let resultFuente=parseFloat(calculos.conteosFuente).toFixed(0) - parseFloat(calculos.conteosFondo).toFixed(0)
             printLineH(` ${resultFuente < 0 ? 0 : resultFuente}  `,margen ,inicio + saltosLinea  ,font,false)
-            let resultFrotis=parseFloat(conteosFrotis).toFixed(0) - parseFloat(certificado.conteosFondo).toFixed(0)
+            let resultFrotis=parseFloat(conteosFrotis).toFixed(0) - parseFloat(calculos.conteosFondo).toFixed(0)
             printLineH(` ${resultFrotis < 0 ? 0 : resultFrotis} `,margen ,inicio + saltosLinea  * 2,font,false)
 
             //Actividad en Bq
             margen=640
-            resultFondo=resultFondo * (parseFloat(calculos.currentActivity)/parseFloat(certificado.conteosFuente))
+            resultFondo=resultFondo * (parseFloat(calculos.currentActivity)/parseFloat(calculos.conteosFuente))
             printLineH(` ${resultFondo < 0 ? 0 : resultFondo.toFixed(0)} `,margen ,inicio ,font,false)
-            resultFuente=resultFuente * (parseFloat(calculos.currentActivity)/parseFloat(certificado.conteosFuente))
+            resultFuente=resultFuente * (parseFloat(calculos.currentActivity)/parseFloat(calculos.conteosFuente))
             printLineH(` ${resultFuente < 0 ? 0 : resultFuente.toFixed(0)}  `,margen ,inicio + saltosLinea  ,font,false)
-            resultFrotis=resultFrotis * (parseFloat(calculos.currentActivity)/parseFloat(certificado.conteosFuente))
+            resultFrotis=resultFrotis * (parseFloat(calculos.currentActivity)/parseFloat(calculos.conteosFuente))
             printLineH(` ${resultFrotis < 0 ? 0 : resultFrotis.toFixed(0)} `,margen ,inicio + saltosLinea  * 2,font,false)
             //Coef de variacion
             margen=700
-            printLineH(` ${((Math.sqrt(parseFloat(certificado.conteosFondo)).toFixed(0) / parseFloat(certificado.conteosFondo)) * 200).toFixed(2)} `,margen ,inicio ,font,false)
-            printLineH(` ${((Math.sqrt(parseFloat(certificado.conteosFuente)).toFixed(0) / parseFloat(certificado.conteosFuente)) * 200).toFixed(2)} `,margen ,inicio + saltosLinea  ,font,false)
+            printLineH(` ${((Math.sqrt(parseFloat(calculos.conteosFondo)).toFixed(0) / parseFloat(calculos.conteosFondo)) * 200).toFixed(2)} `,margen ,inicio ,font,false)
+            printLineH(` ${((Math.sqrt(parseFloat(calculos.conteosFuente)).toFixed(0) / parseFloat(calculos.conteosFuente)) * 200).toFixed(2)} `,margen ,inicio + saltosLinea  ,font,false)
             printLineH(` ${((Math.sqrt(parseFloat(conteosFrotis)).toFixed(0) / parseFloat(conteosFrotis)) * 200).toFixed(2)} `,margen ,inicio + saltosLinea  * 2,font,false)
 
             //Resultados
@@ -478,6 +525,13 @@ export default function AnalisisPf(){
     const handleReceived= (todo)=>{
         setIsFormActive(true)
         setElementsToDo(todo)
+        const lista = []
+        todo.frotis.forEach(item=>{
+            lista.push(item.serie)
+        })
+        lista.push('fondo')
+        lista.push('fuente')
+        setSerialFortis(lista)
 
     }
 
@@ -487,13 +541,16 @@ export default function AnalisisPf(){
         const { name, value } = e.target
 
         if(name === 'equipo'){
+            setPromedios({})
             const equipo = dataLab.equipos.filter(item => item.id === value)
             if(equipo[0].tipo === 'Multicanal'){
                 console.log('Es multicanal')
                 setIsMultiChanel(true)
+                setNumFields(1)
+
             }else{
                 setIsMultiChanel(false)
-                console.log('Es Monocanal')
+                setNumFields(5)
              }
 
         }
@@ -510,27 +567,64 @@ export default function AnalisisPf(){
         )
     }
 
-    const handleSubmit = async(e)=>{
-        e.preventDefault()
-        const formulario = new FormData();
-        const ano = new Date().getFullYear()
-        const certificado ={}
+    const handleChangeCounts = (nombre, index, count) => {
+    
+    const objPromedios = { ...promedios };
+    const updatedArray = [...(objPromedios[nombre] || [])];
+    updatedArray[index] = count;
+    objPromedios[nombre] = updatedArray;
+    setPromedios(objPromedios);
+    };
+
+    const checkInputs = ()=>{
+        const faltantes = serialFrotis.filter(item => !(item in promedios))
+        console.log('Faltantes:',faltantes)
+
+        if(faltantes.length === 0){
+            console.log('Revisando')
+            for(let conteos in promedios){
+                if(promedios[conteos].length < numFields){
+                    console.log('Faltan campos por llenar')
+                    return
+                }
+                    
+            }
+        }
+        
+        
 
         let empty={}
-        
+        let certificado={}
         for(let input in formData){
             if(!formData[input]){
                 empty[input]='empty'
             }else{
                 certificado[input] = formData[input]
             }
-            //Si esta lleno lo metemos a un elemento FormData.append
-        }
+            }
         if(Object.keys(empty).length > 0){
             setFormError(empty)
+            console.log('Empty',empty)
             Swal.fire('Todos los campos deben ser llenados','','warning')
             return
         }
+
+      
+        return { empty, certificado}
+    }
+
+
+    const handleSubmit = async(e)=>{
+        e.preventDefault()
+        
+        const formulario = new FormData();
+        const ano = new Date().getFullYear()
+        const verification = checkInputs()
+
+        
+        //Datos para certificado
+        let certificado ={}
+        certificado = {...verification.certificado,isMultiChanel}
         certificado['licencia'] = getInformationLab(formData.licencia,'licencias')
         certificado['equipo'] = getInformationLab(formData.equipo,'equipos')
         certificado['detector'] = getInformationLab(formData.detector,'detectores')
@@ -538,39 +632,41 @@ export default function AnalisisPf(){
         certificado['personalRealiza'] = getInformationLab(formData.personalRealiza,'personalPf')
         certificado['personalAutoriza'] = getInformationLab(formData.personalAutoriza,'personalPf')
         certificado['tiempoConteo'] = formData.tiempoConteo
-
+        //Obtener el ultimo certificado para los consecutivos
         const ultimos = await fetch(`${server}api/v1/services/last-inform/p/o/i/u/y/${ano}`)
         const num = await ultimos.json()
+        console.log('Ultimo numero',num)
+
         let num_informe = 0
         if(num.success){
-            console.log(num)
             num_informe = parseInt(num.data)
         }else{
             Swal.fire('Algo salio mal al obtener el ultimo numero de informe','','error')
             return
         }
         const newFrotis = elementsToDo.frotis.map(element => {
-            //Realización de los calculos necesarios para el certificado
+            
             const calculos = calculatePf({
                 fuente:certificado.fuente,
-                conteosFrotis:inputValues[element.id],
-                formData
+                conteosFrotis:arrayPromedio(promedios[element.serie]),
+                formData,promedios
 
             })
+
+            console.log('TODOS LOS CALCULOS',calculos)
             const datosServicio=elementsToDo.data_service
             delete datosServicio.frotis
-            //ASIGNAMOS EL NUMERO DE INFORME NUEVO
+            
             num_informe=num_informe + 1
-            //CREAMOS EL NOMBRE DEL PDF CON LA NOMENCLATURA:
-            //NUMINFORME_NOMBRE EMPRESA_ISOTOPO_SERIE
+            
             let nombre_pdf = `${num_informe.toString().padStart(3, '0')}_${datosServicio.razon_social}_${element.isotopo}_${element.serie}.pdf`
                 nombre_pdf = nombre_pdf.replace('/','-')
 
-            generateInform({certificado,calculos,element,dataService:elementsToDo.data_service,num_informe:num_informe.toString().padStart(3, '0'),ano,nombre_pdf,conteosFrotis:inputValues[element.id]})
+            generateInform({certificado,calculos,element,dataService:elementsToDo.data_service,num_informe:num_informe.toString().padStart(3, '0'),ano,nombre_pdf,conteosFrotis:arrayPromedio(promedios[element.serie]),isMultiChanel,promedios})
         
             return ({
             ...element,
-            certificado:{conteosFrotis:inputValues[element.id],...certificado},
+            certificado:{conteosFrotis:promedios[element.serie],...certificado},
             num_informe:num_informe.toString().padStart(3, '0'),
             calculos,
             datosServicio,nombre_pdf,
@@ -580,6 +676,7 @@ export default function AnalisisPf(){
         elementsToDo.frotis=newFrotis
         
         console.log('[LO ULTIMO]',elementsToDo.frotis)
+        
 
         formulario.append('id_service',elementsToDo.data_service.id)
         formulario.append('frotisRealizados',JSON.stringify(newFrotis))
@@ -603,7 +700,8 @@ export default function AnalisisPf(){
                 isPdf:false,
                 datosServicio:element.datosServicio,
                 calculos:element.calculos,
-                certificado,froti:element.element
+                certificado,froti:element.element,
+                personalRealiza:user
 
             }
         ))
@@ -648,6 +746,8 @@ export default function AnalisisPf(){
                 
                 if(frotis.success){
                     setFrotis(frotis.data)
+                    console.log('[ESTOS SON LOS RECIBIDOS',frotis.data)
+                    
                 }else{
                     Swal.fire('Algo Salio Mal, vuelva a intentarlo en un momento','','error')
                 }
@@ -663,6 +763,12 @@ export default function AnalisisPf(){
 
 
     },[isFetched])
+
+    useEffect(()=>{
+        console.log('CAMBIO EN PROMEDIOS',promedios)
+    },[promedios])
+
+    
 
     return(
         <>
@@ -683,6 +789,8 @@ export default function AnalisisPf(){
                             <th className="text-center   border-b">Razon Social</th>
                             <th className="text-center   border-b">Isótopo</th>
                             <th className="text-center   border-b">Fecha de Frotis</th>
+                            <th className="text-center   border-b">Fecha Recepción</th>
+                            <th className="text-center   border-b">Fecha Objetivo</th>
                             <th className="text-center   border-b">Cantidad</th>
                             </tr>
                         </thead>
@@ -697,7 +805,9 @@ export default function AnalisisPf(){
                                     <td className="text-center  border-b max-w-2/5">{frotis.os}</td>
                                     <td className="text-center  border-b max-w-2/5">{frotis.razon_social}</td>
                                     <td className="text-center  border-b max-w-2/5">{frotis.isotopo}</td>
-                                    <td className="text-center  border-b max-w-2/5">{frotis.fecha_frotis}</td>
+                                    <td className="text-center  border-b max-w-2/5">{fechaCorta(frotis.fecha_frotis)}</td>
+                                    <td className="text-center  border-b max-w-2/5">{fechaCorta(frotis.frotis[0].fecha_recibido)}</td>
+                                    <td className="text-center  border-b max-w-2/5">{fechaCorta(frotis.frotis[0].fecha_objetivo)}</td>
                                     <td className="text-center  border-b max-w-2/5">{frotis.frotis.length}</td>
 
                                     <td className="text-center  border-b">
@@ -861,78 +971,116 @@ export default function AnalisisPf(){
                                     </FormGroup>
                                 </Col>
                             </Row>
-                            <Row>
-                                <h2 className="text-blue-500 mb-8">Resultados de analisis</h2>
-                                
-                                <Col md={3}>
-                                    <FormGroup>
-                                        <Label>Tiempo de conteo en minutos</Label>
-                                        <Input type="number" name="tiempoConteo" value={formData.tiempoConteo} min={0} onChange={handleChange} className={`${formError.tiempoConteo ? 'border-red-600' : ''}`} onWheel={()=>handleWheel}/>           
-                                    </FormGroup>
-                                </Col>
-                                <Col md={3}>
-                                    <FormGroup>
-                                        <Label>Threshold en mV </Label>
-                                        <Input type="number" name="th" value={formData.th} onChange={handleChange} className={`${formError.th ? 'border-red-600' : ''}`} onWheel={()=>handleWheel} />       
-                                        
-                                    </FormGroup>
-                                </Col>
-                                <Col md={3}>
-                                    <FormGroup>
-                                        <Label>Alto voltaje (HV) </Label>
-                                        <Input type="number" name="hv" value={formData.hv} onChange={handleChange} className={`${formError.hv ? 'border-red-600' : ''}`} onWheel={()=>handleWheel} min={0}/>       
-                                        
-                                    </FormGroup>
-                                </Col>
-                                <Col md={3}>
-                                    <FormGroup>
-                                        <Label>Ganancia </Label>
-                                        <Input type="text" name="ganancia" value={formData.ganancia} onChange={handleChange} className={`${formError.ganancia ? 'border-red-600' : ''}`} onWheel={()=>handleWheel} />       
-                                        
-                                    </FormGroup>
-                                </Col>
+                            
+                           
+                            <>
+                                <Row>
+                                    <h2 className="text-blue-500 mb-8">Resultados de analisis Monocanal</h2>
+                                    
+                                    <Col md={3}>
+                                        <FormGroup>
+                                            <Label>Tiempo de conteo en minutos</Label>
+                                            <Input type="number" name="tiempoConteo" value={formData.tiempoConteo} min={0} onChange={handleChange} className={`${formError.tiempoConteo ? 'border-red-600' : ''}`} onWheel={()=>handleWheel}/>           
+                                        </FormGroup>
+                                    </Col>
+                                    <Col md={3}>
+                                        <FormGroup>
+                                            <Label>Threshold en mV </Label>
+                                            <Input type="number" name="th" value={formData.th} onChange={handleChange} className={`${formError.th ? 'border-red-600' : ''}`} onWheel={()=>handleWheel} />       
+                                            
+                                        </FormGroup>
+                                    </Col>
+                                    <Col md={3}>
+                                        <FormGroup>
+                                            <Label>Alto voltaje (HV) </Label>
+                                            <Input type="number" name="hv" value={formData.hv} onChange={handleChange} className={`${formError.hv ? 'border-red-600' : ''}`} onWheel={()=>handleWheel} min={0}/>       
+                                            
+                                        </FormGroup>
+                                    </Col>
+                                    <Col md={3}>
+                                        <FormGroup>
+                                        {isMultiChanel ? (<Label>Ganancia</Label>) : (<Label>Ventana (W)</Label>)}
+                                            
+                                            <Input type="text" name="ganancia" value={formData.ganancia} onChange={handleChange} className={`${formError.ganancia ? 'border-red-600' : ''}`} onWheel={()=>handleWheel} />       
+                                            
+                                        </FormGroup>
+                                    </Col>)
 
-                            </Row>
-                            
-                            <Col md={6}>
-                                <FormGroup>
-                                    <Label>Conteos de fuente</Label>
-                                    <Input type="number" name="conteosFuente" value={formData.conteosFuente} onChange={handleChange} className={`${formError.conteosFuente ? 'border-red-600' : ''}`} min={0}>       
-                                    </Input>
-                                </FormGroup>
-                            </Col>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <Label>Conteos de fondo</Label>
-                                    <Input type="number" name="conteosFondo" value={formData.conteosFondo} onChange={handleChange} className={`${formError.conteosFondo ? 'border-red-600' : ''}`} min={0}>       
-                                    </Input>
-                                </FormGroup>
-                            </Col>
-                            
-                            <Row>
-                                <h2 className="text-blue-500 mb-8">CONTEOS DE FROTIS</h2>
-                                <Col md={4}>
-                                    {elementsToDo.frotis?.map((item,index)=>(
-                                        <FormGroup key={`${index}-f`}>
-                                        <Label>{item.serie}</Label>
-                                        <Input type="number"
-                                            value={inputValues[item.id] || ''}
-                                         onChange={(event)=>handleInputChange(item.id,event)}
-                                         min={0}
-                                         />       
+                                </Row>
+                                <Row>
+                                <Label>Conteos de fuente</Label>
+                                {Array.from({length:numFields}).map((_,index)=>(
+                                    <Col md={2} key={`${index}fuente`}>
+                                    <FormGroup>
+                                        <Input 
+                                        type="number" 
+                                        name={`fuente${index}`} 
+                                        min={0} 
+                                        placeholder={`fuente${index +1}`}
+                                        onChange = {(e)=>handleChangeCounts('fuente',index,e.target.value)} >
+                                            
+                                        </Input>
                                     </FormGroup>
-                                    ))}
                                 </Col>
-                              
-                            </Row>
-                            <Row>
+                                ))}
                             
+                                </Row>                           
+                               <Row>
+                               <Label>Conteos de fondo</Label>
+                               {Array.from({length:numFields}).map((_,index)=>(
+                                <Col md={2} key={`${index}fondo`}>
+                                <FormGroup>
+                                    <Input 
+                                    type="number" 
+                                    name={`fondo${index}`} 
+                                    min={0} 
+                                    placeholder={`fondo${index +1}`}
+                                    onChange = {(e)=>handleChangeCounts('fondo',index,e.target.value)} >
+                                          
+                                    </Input>
+                                </FormGroup>
+                            </Col>
+                            ))}
+                                   
+                                     
+
+                               </Row>                     
+                                <Row>
+                                        <Label>Conteos de FROTIS</Label>
+                                        {elementsToDo.frotis?.map((item,i) =>(
+                                            <Row key={`${i}-${item.serie}`} >
+                                            <Label>{`${item.serie}`}</Label>{
+                                            Array.from({ length: numFields }).map((_, index) => (
+                                            
+                                                <Col md={2} key={`${index}-${item.serie}`}>
+                                                    <FormGroup>
+                                                    <Input
+                                                        type="number"
+                                                        name={`${item.serie}-${index}`}
+                                                        min={0}
+                                                        placeholder={`${item.serie}-${index + 1}`}
+                                                        onChange={(e) =>
+                                                        handleChangeCounts(`${item.serie}`, index, e.target.value)
+                                                        }
+                                                    />
+                                                    </FormGroup>
+                                                </Col>
+                                            
+                                            
+                                            ))}
+                                            </Row>)
+                                        )}
+                                </Row>
+
+
+                            </>
+                            
+
+                            <Row>                        
                                 <Col md={4}>
                                    <Button type="button " className="bg-green-900 hover:bg-green-600" onClick={handleSubmit}>Finalizar</Button>
-                                </Col>
-                              
-                            </Row>
-                            
+                                </Col>             
+                            </Row>          
                         </Form>     
                     </CardBody>
                     

@@ -13,6 +13,7 @@ export default function RecepcionFrotis(){
     const [frotis,setFrotis] = useState([])
     const [errorFetch , setErrorFetch] = useState(null)
     const [isFetched, setIsFetched] = useState(false);
+    const [year,setYear] = useState(new Date().getFullYear())
 
     const handleReceived= (id)=>{
         const year = new Date().getFullYear()
@@ -55,7 +56,7 @@ export default function RecepcionFrotis(){
     useEffect(()=>{
         const fetchData = async()=>{
             try {
-                const response = await fetch(`${server}api/v1/services/reception/frotis/2024`)
+                const response = await fetch(`${server}api/v1/services/reception/frotis/${year}`)
                 const frotis = await response.json()
                 
                 if(frotis.success){

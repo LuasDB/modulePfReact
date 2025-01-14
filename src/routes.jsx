@@ -105,7 +105,6 @@ const routes = [
         name: "Editar informe",
         icon: <FaClipboardList />,
         component: <FormAnalisis />,
-        type:'menu'
     },
 ];
 

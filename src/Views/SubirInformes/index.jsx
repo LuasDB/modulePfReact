@@ -1,4 +1,4 @@
-import { useState } from "react";                
+import { useEffect, useState } from "react";                
 import { Card, CardBody, CardHeader, CardTitle, FormGroup, Label,Input,Button } from "reactstrap"
 import { useDropzone } from 'react-dropzone';
 import Swal from "sweetalert2";
@@ -8,6 +8,7 @@ import axios from "axios";
 export default function SubirInformes(){
     const [files, setFiles] = useState([]);
     const [year, setYear] = useState('');
+    const [selectedYears,setSelectedYears] = useState([])
     const [archivos,setArchivos] = useState(null)
 
     const { getRootProps, getInputProps } = useDropzone({
@@ -50,6 +51,14 @@ export default function SubirInformes(){
             Swal.fire('Algo salio mal ', error,'error')
         }
     }
+    useEffect(()=>{
+        const today = new Date().getFullYear()
+        const years = []
+        for(let i=2023; i <= today;i++){
+            years.push(i)
+        }
+        setSelectedYears(years)
+    },[])
 
     return (
         <>
@@ -62,10 +71,13 @@ export default function SubirInformes(){
                 <CardBody>
                     <FormGroup>
                         <Label className='text-yellow-700'>Indica el año del informe o los informes</Label>
+                        
                         <Input type="select" onChange={(e)=>setYear(e.target.value)}> 
-                            <option value={''}>--Selecciona un año--</option>
-                            <option value={2023}>2023</option>
-                            <option value={2024}>2024</option>
+                        <option value={''}>--Selecciona un año--</option>
+                        {selectedYears?.map((item,index)=>(
+                            <option key={`${index}-y`} value={item}>{item}</option>
+                        ))}
+                            
                         </Input>
                     </FormGroup>
                     <FormGroup>
