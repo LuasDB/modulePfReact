@@ -294,7 +294,7 @@ export function FormNewRequest(){
                 {isNew && (<Row>
                     <Col md={8}></Col>
                     <Col md={4}>
-                    <Link to={'/forms/clientes/new'}>
+                    <Link to={'/laboratorio/pruebas-fuga/forms/clientes/new'}>
                         <Button type="button" >Agregar Nuevo cliente</Button>
                     </Link>
                     </Col>

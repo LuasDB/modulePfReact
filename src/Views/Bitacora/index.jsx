@@ -38,7 +38,7 @@ export function Bitacora(){
         fetchData(year)
     }
     const handleUpdate = ()=>{
-        navigator('/subir-informes')
+        navigator('/laboratorio/pruebas-fuga/subir-informes')
     }
 
     useEffect(()=>{    
@@ -109,7 +109,7 @@ export function Bitacora(){
                                 sin PDF
                             </td> )}
                             <td>
-                                <Link to={`/editar-informes/${item.ano}/${item.num_informe}`}>
+                                <Link to={`/laboratorio/pruebas-fuga/editar-informes/${item.ano}/${item.num_informe}`}>
                                     <FaEdit className="text-lg text-blue-600 cursor-pointer"/>
                                 </Link>
                             </td>                        

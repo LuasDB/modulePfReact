@@ -5,10 +5,11 @@ import PerfectScrollbar from "perfect-scrollbar"
 import 'perfect-scrollbar/css/perfect-scrollbar.css';
 
 
-import NavBar from "../NavBar"
-import Sidebar from "../Sidebar"
+import NavBar from "../../Components/NavBar/index.jsx"
+import Sidebar from "../../Components/Sidebar/index.jsx"
 import { routes } from '../../routes.jsx'
 import { useEffect, useRef } from "react"
+import Solicitudes from "../../Views/Solicitudes/index.jsx";
 
 
 export default function AdminLayout() {
@@ -32,13 +33,18 @@ export default function AdminLayout() {
 
 
 
-    const getRoutes = (routes) => {
-        return routes.map((route, index) => {
-            console.log(route.path)
-            return (
-            <Route path={route.path} element={route.component} key={index} exact />
-        )})
-    }
+  const getRoutes = (routes) => {
+    return routes.map((route, index) => {
+        return (
+            <Route 
+                path={route.path} 
+                element={route.component} 
+                key={index} 
+            />
+        );
+        
+    });
+}
 
     return (
         <>
@@ -53,6 +59,7 @@ export default function AdminLayout() {
                     <Col md={10} ref={containerRef} className="">
                     <Routes>
                     {getRoutes(routes)}
+                    
                     </Routes>
                     </Col>
                 </Row>

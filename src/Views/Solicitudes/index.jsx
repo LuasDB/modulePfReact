@@ -64,7 +64,7 @@ export default function Solicitudes(){
 
             <Tabla 
                 className='w-100 text-center'
-                path={'/forms/solicitudes/'} 
+                path={'/laboratorio/pruebas-fuga/forms/solicitudes/'} 
                 encabezados={['O.S.','Razón Social','Cantidad de frotis']}
                 data={gestion.dataLab}
                 title={'Solicitudes'}

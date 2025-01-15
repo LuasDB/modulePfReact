@@ -18,7 +18,7 @@ export default function Login(){
     console.log('BTN INICIO')
       e.preventDefault()
       await login(email,password)
-      navigate('/')
+      navigate('/laboratorio')
 
   }
   return (

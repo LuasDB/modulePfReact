@@ -1,12 +1,14 @@
 import {useContext, useState} from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Navbar, NavbarBrand, Nav, NavItem, NavLink,DropdownMenu,DropdownItem,DropdownToggle,Dropdown} from 'reactstrap';
 import { FaHome, FaUser, FaCog } from 'react-icons/fa'; // Importa los iconos que necesites
-import { AuthContext } from './../../context/AuthContext'
+import { AuthContext } from '../../context/AuthContext'
 
 import './NavBar.css'
 
 
 export default function NavBar(){
+  const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { logout , user  } = useContext(AuthContext)
 
@@ -23,10 +25,10 @@ export default function NavBar(){
         <img src="https://siradiacion.com.mx/wp-content/uploads/2022/04/Logo-SIRSA-2.svg" alt="Logo" className='w-44' />
       </NavbarBrand>
       <Nav className="ml-auto" navbar>
-        <NavItem>
-          <NavLink href="/">
-            <FaHome />
-          </NavLink>
+        <NavItem className='cursor-pointer nav-item w-14 text-[25px] text-gray-400 hover:text-gray-700'
+        onClick={()=>navigate('/laboratorio')}>
+          
+          <FaHome />
         </NavItem>
         <NavItem>
           <NavLink >

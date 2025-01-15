@@ -29,7 +29,7 @@ export default function Sidebar({ routes }) {
                             key={index}
                             onClick={()=>handleSelected(index,item)}
                             > 
-                            <Link  to={item.path} className={` flex items-center space-x-4 no-underline ${selected === index ? 'bg-gray-500 text-yellow-400' : 'text-gray-950' } `}>
+                            <Link  to={`/laboratorio/pruebas-fuga${item.path}`} className={` flex items-center space-x-4 no-underline ${selected === index ? 'bg-gray-500 text-yellow-400' : 'text-gray-950' } `}>
                                 <div> {item.icon}</div>
                                 <div> {item.name}</div>
                             </Link>

@@ -2,6 +2,7 @@ import { createContext,useState,useEffect } from 'react'
 import  {jwtDecode}  from "jwt-decode";
 
 import axios from 'axios'
+import Swal from 'sweetalert2';
 
 const AuthContext = createContext()
 
@@ -34,6 +35,7 @@ const AuthProvider = ({children})=>{
            
             
         } catch (error) {
+            Swal.fire('Algo salio mal!',`Credenciales invalidas`,'error')
             console.error('Login failed', error);
         }finally{
             setLoading(false)
