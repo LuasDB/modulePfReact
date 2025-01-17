@@ -44,7 +44,7 @@ export default function AdminLayout() {
         );
         
     });
-}
+    }
 
     return (
         <>
@@ -54,7 +54,7 @@ export default function AdminLayout() {
             <div className="container-fluid">
                 <Row>
                     <Col md={2} >
-                        <Sidebar routes={routes} />
+                        <Sidebar routes={routes} sectionTittle={'Pruebas de Fuga'} baseRoute={'/laboratorio/pruebas-fuga'}/>
                     </Col>
                     <Col md={10} ref={containerRef} className="">
                     <Routes>

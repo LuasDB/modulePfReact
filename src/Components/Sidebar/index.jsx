@@ -3,16 +3,23 @@ import { Link } from 'react-router-dom'
 import PropTypes from "prop-types";
 
 import './Sidebar.css'
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-export default function Sidebar({ routes }) {
+export default function Sidebar({ routes, ...props }) {
+    const { sectionTittle,baseRoute } = props
     const [selected, setSelected ] = useState(null)
-    const [tittle, setTittle] = useState('Pruebas de fuga')
+    const [tittle, setTittle] = useState('Bienvenido')
 
     const handleSelected = (index,item)=>{
         setSelected(index)
         setTittle(item.name)
     }
+
+    useEffect(() => {      
+        if(sectionTittle){
+            setTittle(sectionTittle)
+        }
+    }, [sectionTittle])
     return (
         <Card className='h-auto rounded-xl shadow mt-4 mb-4'>
             <CardHeader>
@@ -29,7 +36,7 @@ export default function Sidebar({ routes }) {
                             key={index}
                             onClick={()=>handleSelected(index,item)}
                             > 
-                            <Link  to={`/laboratorio/pruebas-fuga${item.path}`} className={` flex items-center space-x-4 no-underline ${selected === index ? 'bg-gray-500 text-yellow-400' : 'text-gray-950' } `}>
+                            <Link  to={`${baseRoute}${item.path}`} className={` flex items-center space-x-4 no-underline ${selected === index ? 'bg-gray-500 text-yellow-400' : 'text-gray-950' } `}>
                                 <div> {item.icon}</div>
                                 <div> {item.name}</div>
                             </Link>
