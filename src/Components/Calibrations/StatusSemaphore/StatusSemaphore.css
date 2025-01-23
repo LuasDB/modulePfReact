@@ -1,0 +1,25 @@
+.status-semaphore {
+    display: flex;
+    align-items: center;
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 10px;
+}
+
+.icon {
+    font-size: 24px;
+    margin-bottom: 5px;
+}
+
+.completed {
+    color: rgb(39, 148, 53);
+}
+
+.pending {
+    color: rgb(88, 235, 108,0.3);
+
+}

@@ -8,6 +8,8 @@ import Login from './../Login';
 import RestartPassword from './../RestartPassword';
 import PasswordResetRequest from './../PasswordResetRequest';
 import { AuthContext, AuthProvider } from "../../context/AuthContext";
+import FormOs from "../../Components/Calibrations/FormOs";
+import EquiposSelector from "../../Components/Calibrations/EquiposSelector";
 
 export default function App(){
   const getRoutes = (routes) => {
@@ -23,6 +25,7 @@ export default function App(){
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/prueba/:id" element={<FormOs />} />
             <Route path="/" element={<Navigate to="/login" />} />      
             <Route path="/login" element={<Login />} />
             <Route path="/sol-password" element={<PasswordResetRequest/> }/> 

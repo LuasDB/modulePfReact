@@ -69,6 +69,16 @@ function calcularFechaObjetivo(fechaInicial, dias, diasFestivos) {
   return fecha;
 }
 
+function setStatusColor(status){
+  
+  const statusOrder = {
+    'Arribo':'rounded-full text-sm bg-blue-100 text-blue-800',
+    'Con O.S.':'rounded-full text-sm bg-purple-100 text-purple-800',
+    'En calibración':'rounded-full text-sm bg-green-100 text-green-800',
+    'Calibrado':'rounded-full text-sm bg-green-100 text-green-800',
+    'En espera de envio':'rounded-full text-sm bg-green-100 text-green-800'}
+  return statusOrder[status]
+}
 // Ejemplo de uso:
 const fechaInicial = '2025-04-16'; // Fecha inicial
 const dias = 5; // Días laborables a añadir
@@ -86,4 +96,4 @@ console.log(fechaObjetivo.toISOString().split('T')[0]); // Muestra la fecha en f
 
 
 
-  export {formatFecha,orderByProperty,fechaCorta}
+  export {formatFecha,orderByProperty,fechaCorta,setStatusColor}
